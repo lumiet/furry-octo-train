@@ -1,0 +1,3 @@
+﻿  Source.cpp
+c:\users\lumiet.laptop-hf4nhaoh\source\repos\project1\project1\source.cpp(7): warning C4326: return type of 'main' should be 'int' instead of 'void'
+  Project1.vcxproj -> c:\Users\lumiet.laptop-hf4nhaoh\source\repos\Project1\Debug\Project1.exe
