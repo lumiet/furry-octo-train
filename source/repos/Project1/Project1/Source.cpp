@@ -8,65 +8,111 @@
 using namespace std;
 using namespace sf;
 
-
-
 Event event;
 int rwindowx = VideoMode::getDesktopMode().width;
 int rwindowy = VideoMode::getDesktopMode().height;
 const double pi = 3.141592;
 
-double jump(int height, int cframe, int tframe) {
-	return height * sin((cframe / tframe) * pi);
-}
 enum species { LIZARD, BIRD, MAMMAL, AMPHIBIAN };
 enum stats {HP, RUNSPD, JUMPH};
 
+struct Entity;
+struct Surface;
+vector<Surface> surfaces;
 
+struct Surface {
+	RectangleShape rect;
 
-int speciesStats[4][3] = { 
-	{1,2,3}, //LIZARD
-	{1,2,3}, //BIRD
-	{1,2,3}, //MAMMAL
-	{1,2,3} //AMPHIBIAN
-};
-
-
-
-struct Character {
-	int x;
-	int y;
-	Texture texture;
-	Sprite sprite;
-	bool inAir = false;
-	int hp;
-	int maxHp;
-	void setUp() {
-
+	Surface(Vector2f location, Vector2f size) {
+		rect = RectangleShape(location);
+		rect.setSize(size);
+		rect.setFillColor(Color(0, 0, 0, 255));
 	}
 
-
+	bool intersects(Entity * character);
 };
 
-void main() {
-	Texture chara;
-	IntRect charaselect(0, 0, 500, 500);
-	Sprite character(chara, charaselect);
-	chara.loadFromFile("lizardmodel.png");
-	character.setTexture(chara);
+struct Entity {
+	Texture texture;
+	Sprite sprite;
+
+	double x = 0;
+	double y = 0;
+	double xv = 0;
+	double yv = 0;
+
+	bool inAir = false;
+	int timeInAir;
+
+	int hp;
+	vector<int> stats;
+
+	Entity(Vector2f position, vector<int> statistics) {
+		texture.loadFromFile("assets/met13.png");
+		sprite.setPosition(position);
+		sprite.setTexture(texture);
+
+		stats = statistics;
+	}
+
+	void update() {
+		inAir = true;
+		for (int i = 0; i < surfaces.size(); i++) {
+			if (surfaces[i].intersects(this)) {
+				inAir = false;
+				yv = 0;
+			}
+		}
+
+		if (timeInAir > 0) {
+			timeInAir--;
+		}
+		if (yv > -15 && inAir) {
+			yv += .1;
+		}
+
+		x += xv;
+		y += yv;
+		sprite.move(x, y);
+	}
+
+	void jump() {
+		if (!inAir || timeInAir > 0) {
+			yv = -1;
+		}
+		if (!inAir) {
+			timeInAir = 50;
+		}
+	}
+};
+
+bool Surface::intersects(Entity* character){
+	return rect.getGlobalBounds().intersects(character->sprite.getGlobalBounds());
+}
+
+int main() {
+	surfaces.push_back(Surface(Vector2f(5.f, 5.f), Vector2f(10.f, 20.f)));
+
+	Entity monster = Entity(Vector2f(10.f, 50.f), vector<int>({ 1,2,3 }));
+
 	RenderWindow renderWindow;
 	renderWindow.create(VideoMode(rwindowx, rwindowy), "Platformer"/*, Style::Fullscreen*/);
 
-
-
 	while (renderWindow.isOpen()) {
-		character.move(1, 0);
-		renderWindow.clear(Color(25,25,25,255));
-		renderWindow.draw(character);
+		renderWindow.clear(Color(150,170,200,255));
+		monster.update();
+		renderWindow.draw(monster.sprite);
+		for (int i = 0; i < surfaces.size(); i++) {
+			renderWindow.draw(surfaces[i].rect);
+		}
 		renderWindow.display();
 		while (renderWindow.pollEvent(event)) {
 			switch (event.type) {
-			case Keyboard::Escape:
-				renderWindow.close();
+			case Event::KeyPressed:
+				switch (event.key.code) {
+					case Keyboard::Escape:	renderWindow.close(); break;
+					case Keyboard::Up: monster.jump(); break;
+				}
 				break;
 			case Event::EventType::Closed:
 				renderWindow.close();
@@ -77,7 +123,5 @@ void main() {
 		}
 	}
 
-
-
-	return;
+	return 0;
 }

@@ -1,0 +1,2 @@
+﻿  Source.cpp
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(1): fatal error C1083: Cannot open include file: 'SFML/Graphics.hpp': No such file or directory
