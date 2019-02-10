@@ -1,5 +1,5 @@
 ﻿  Source.cpp
-c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(85): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(101): warning C4244: 'argument': conversion from 'T' to 'T', possible loss of data
           with
           [
               T=unsigned int
@@ -8,13 +8,43 @@ c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.c
           [
               T=float
           ]
-c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(195): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(285): warning C4305: 'argument': truncation from 'double' to 'T'
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(216): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(274): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
           with
           [
               T=float
           ]
-c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(286): warning C4305: 'argument': truncation from 'double' to 'T'
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(275): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(280): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(286): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(287): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(292): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
+          with
+          [
+              T=float
+          ]
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(315): warning C4305: 'argument': truncation from 'double' to 'T'
+          with
+          [
+              T=float
+          ]
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(316): warning C4305: 'argument': truncation from 'double' to 'T'
           with
           [
               T=float

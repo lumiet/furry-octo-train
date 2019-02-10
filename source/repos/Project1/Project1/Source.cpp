@@ -1,6 +1,8 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include <sstream>
 #include <string>
+#include <fstream>
 #include <ctime>
 #include <vector>
 #include <cmath>
@@ -25,7 +27,9 @@ enum stats { HP, RUNSPD, JUMPH };
 
 struct Entity;
 struct Surface;
+struct Hitbox;
 vector<Surface> surfaces;
+vector<Hitbox> hitboxes;
 
 struct Surface {
 	RectangleShape rect;
@@ -36,11 +40,22 @@ struct Surface {
 		rect.setFillColor(Color(0, 0, 0, 255));
 	}
 
-	bool intersects(Entity * character);
 	bool intersectsTop(Entity * character);
 	bool intersectsBottom(Entity * character);
 	bool intersectsRight(Entity * character);
 	bool intersectsLeft(Entity * character);
+};
+
+struct Hitbox {
+	RectangleShape rect;
+	bool against;
+
+	Hitbox(Vector2f location, Vector2f size, bool againstEnemy) {
+		rect.setPosition(location);
+		rect.setSize(size);
+		rect.setFillColor(Color(0, 0, 0, 150));
+		against = againstEnemy;
+	}
 };
 
 struct Entity {
@@ -66,6 +81,7 @@ struct Entity {
 	bool up;
 
 	bool playable;
+	bool alive = true;
 	int hp;
 	string filename;
 	vector<int> stats;
@@ -92,6 +108,7 @@ struct Entity {
 
 		playable = player;
 		stats = statistics;
+		hp = stats[HP];
 	}
 
 	void movement() {
@@ -113,6 +130,10 @@ struct Entity {
 		}
 	}
 
+	void die() {
+		alive = false;
+	}
+
 	Sprite update() {
 		movement();
 
@@ -123,12 +144,12 @@ struct Entity {
 			bool exit = false;
 			if (surfaces[i].intersectsTop(this)) {
 				yv = max(0.0, yv);
-				exit = true;
+				//exit = true;
 			}
 			if (surfaces[i].intersectsBottom(this)) {
 				inAir = false;
 				yv = min(0.0, yv);
-				exit = true;
+				//exit = true;
 			}
 			if (surfaces[i].intersectsRight(this) && !exit) {
 				collideRight = true;
@@ -205,6 +226,11 @@ struct Entity {
 			cout << " pos: (" + to_string(x) + "," + to_string(y) + ") v: (" + to_string(xv) + "," + to_string(yv) + ")" << endl;
 		}
 
+		if (!playable) {
+			hitboxes.push_back(Hitbox(Vector2f((float)(sprite.getGlobalBounds().left), (float)(sprite.getGlobalBounds().top)), 
+				Vector2f(sprite.getGlobalBounds().width, sprite.getGlobalBounds().height), false));
+		}
+
 		sprite.setTexture(texture);
 		return sprite;
 	}
@@ -218,7 +244,7 @@ struct Entity {
 
 	void run() {
 		double val = instantSpeedX;
-	    if (xv >= instantSpeedX - .1) {
+		if (xv >= instantSpeedX - .1) {
 			val = xv + holdSpeedX;
 		}
 		else if (xv <= -instantSpeedX + .1) {
@@ -229,45 +255,47 @@ struct Entity {
 			forwards = true;
 			return;
 		}
-		if(left && !right){
+		if (left && !right) {
 			xv = -abs(val);
 			forwards = false;
 			return;
 		}
 		xv = 0;
 	}
+
+	bool hurt(Hitbox * hurter) {
+		hp -= 1;
+		return true;
+	}
 };
 vector<Entity> enemies;
 
-bool Surface::intersects(Entity* character) {
-	return (rect.getGlobalBounds().intersects(character->sprite.getGlobalBounds()));
-}
-
 bool Surface::intersectsTop(Entity* character) {
-	bool lowerThanTop = ((rect.getGlobalBounds().top + rect.getGlobalBounds().height) > (character->sprite.getGlobalBounds().top));
-	bool aboveTop = ((rect.getGlobalBounds().top) < (character->sprite.getGlobalBounds().top));
-	return intersects(character) && aboveTop && lowerThanTop;
+	RectangleShape fake(Vector2f(character->sprite.getGlobalBounds().width, character->maxSpeedY));
+	fake.setPosition(Vector2f(character->sprite.getGlobalBounds().left, character->sprite.getGlobalBounds().top - character->maxSpeedY));
+	return rect.getGlobalBounds().intersects(fake.getGlobalBounds());
 }
 
 bool Surface::intersectsBottom(Entity* character) {
-	bool lowerThanTop = ((rect.getGlobalBounds().top) < (character->sprite.getGlobalBounds().top + character->sprite.getGlobalBounds().height));
-	bool aboveTop = ((rect.getGlobalBounds().top + rect.getGlobalBounds().height) > (character->sprite.getGlobalBounds().top + character->sprite.getGlobalBounds().height));
-	return intersects(character) && aboveTop && lowerThanTop;
+	RectangleShape fake(Vector2f(character->sprite.getGlobalBounds().width, character->maxSpeedY));
+	fake.setPosition(Vector2f(character->sprite.getGlobalBounds().left, character->sprite.getGlobalBounds().top + character->sprite.getGlobalBounds().height));
+	return rect.getGlobalBounds().intersects(fake.getGlobalBounds());
 }
 
 bool Surface::intersectsLeft(Entity* character) {
-	bool lowerThanTop = ((rect.getGlobalBounds().left + rect.getGlobalBounds().width) > (character->sprite.getGlobalBounds().left));
-	bool aboveTop = ((rect.getGlobalBounds().left) < (character->sprite.getGlobalBounds().left));
-	return intersects(character) && aboveTop && lowerThanTop;
+	RectangleShape fake(Vector2f(character->maxSpeedX, character->sprite.getGlobalBounds().height));
+	fake.setPosition(Vector2f(character->sprite.getGlobalBounds().left - character->maxSpeedX, character->sprite.getGlobalBounds().top));
+	return rect.getGlobalBounds().intersects(fake.getGlobalBounds());
 }
 
 bool Surface::intersectsRight(Entity* character) {
-	bool lowerThanTop = ((rect.getGlobalBounds().left) < (character->sprite.getGlobalBounds().left + character->sprite.getGlobalBounds().width));
-	bool aboveTop = ((rect.getGlobalBounds().left + rect.getGlobalBounds().width) > (character->sprite.getGlobalBounds().left + character->sprite.getGlobalBounds().width));
-	return intersects(character) && aboveTop && lowerThanTop;
+	RectangleShape fake(Vector2f(character->maxSpeedX, character->sprite.getGlobalBounds().height));
+	fake.setPosition(Vector2f(character->sprite.getGlobalBounds().left + character->sprite.getGlobalBounds().width, character->sprite.getGlobalBounds().top));
+	return rect.getGlobalBounds().intersects(fake.getGlobalBounds());
 }
 
 int main() {
+
 	arial.loadFromFile("Arial.ttf");
 	sf::Text text;
 	text.setFont(arial);
@@ -280,10 +308,12 @@ int main() {
 	surfaces.push_back(Surface(Vector2f(0.f, 0.f), Vector2f(400.f, 30.f)));
 	surfaces.push_back(Surface(Vector2f(0.f, 800.f), Vector2f(400.f, 50.f)));
 	surfaces.push_back(Surface(Vector2f(500.f, 800.f), Vector2f(1400.f, 50.f)));
-	surfaces.push_back(Surface(Vector2f(800.f, 700.f), Vector2f(200.f, 50.f)));
+	surfaces.push_back(Surface(Vector2f(800.f, 710.f), Vector2f(200.f, 100.f)));
+	surfaces.push_back(Surface(Vector2f(1300.f, 630.f), Vector2f(200.f, 150.f)));
+	surfaces.push_back(Surface(Vector2f(1700.f, 500.f), Vector2f(400.f, 20.f)));
 
-	Entity monster = Entity("assets/lizardmodel.png", Vector2f(10.f, 75.f), Vector2f(.04, .05), vector<int>({ 1,2,3 }), true);
-	enemies.push_back(Entity("assets/met13.png", Vector2f(50.f, 75.f), Vector2f(.4, .5), vector<int>({ 1,2,3 }), false));
+	Entity monster = Entity("assets/lizardmodel.png", Vector2f(10.f, 500.f), Vector2f(.04, .05), vector<int>({ 1,2,3 }), true);
+	enemies.push_back(Entity("assets/met13.png", Vector2f(1400.f, 500.f), Vector2f(.6, .75), vector<int>({ 1,2,3 }), false));
 
 	RenderWindow renderWindow;
 	renderWindow.create(VideoMode(rwindowx, rwindowy), "Platformer"/*, Style::Fullscreen*/);
@@ -293,17 +323,35 @@ int main() {
 
 		renderWindow.clear(Color(150,170,200,255));
 
+		hitboxes = vector<Hitbox>();
 		view.setCenter(max(10.f, monster.sprite.getPosition().x), 500.f);
 		renderWindow.setView(view);
-		renderWindow.draw(monster.update());
+		if (monster.alive) {
+			renderWindow.draw(monster.update());
+		}
 		for (int i = 0; i < enemies.size(); i++) {
-			renderWindow.draw(enemies[i].update());
+			if (enemies[i].alive) {
+				renderWindow.draw(enemies[i].update());
+			}
 		}
 		for (int i = 0; i < surfaces.size(); i++) {
 			renderWindow.draw(surfaces[i].rect);
 		}
 		text.setString(to_string(monster.xv));
 		renderWindow.draw(text);
+		for (int i = 0; i < hitboxes.size(); i++) {
+			renderWindow.draw(hitboxes[i].rect);
+			if (!hitboxes[i].against && monster.sprite.getGlobalBounds().intersects(hitboxes[i].rect.getGlobalBounds())) {
+				monster.hurt(&hitboxes[i]);
+			}
+			if (hitboxes[i].against) {
+				for (int e = 0; e < enemies.size(); e++) {
+					if (enemies[e].sprite.getGlobalBounds().intersects(hitboxes[i].rect.getGlobalBounds())) {
+						enemies[e].hurt(&hitboxes[i]);
+					}
+				}
+			}
+		}
 
 		renderWindow.display();
 		while (renderWindow.pollEvent(event)) {
