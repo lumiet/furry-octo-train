@@ -1,7 +1,4 @@
 ﻿  Source.cpp
-c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(283): warning C4244: 'argument': conversion from 'double' to 'T', possible loss of data
-          with
-          [
-              T=float
-          ]
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(779): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(872): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
   Project1.vcxproj -> C:\Users\Brock\Pictures\furry-octo-train\source\repos\Project1\x64\Debug\Project1.exe
