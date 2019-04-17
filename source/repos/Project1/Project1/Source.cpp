@@ -19,7 +19,7 @@ Time dt;
 int frame = 0;
 int sinceDied = 0;
 
-double gravity = .065;
+double gravity = .015;
 float blockSize = 75.f;
 float partialSize = blockSize / 3;
 
@@ -30,7 +30,6 @@ const double pi = 3.141592;
 
 enum species { LIZARD, BIRD, MAMMAL, AMPHIBIAN };
 enum stats { HP, RUNSPD, JUMPH };
-
 
 struct Entity;
 struct Surface;
@@ -225,12 +224,12 @@ struct Entity {
 	set<string> attributes;
 	double personalGravity = gravity;
 	double maxSpeedX = .6;
-	double maxSpeedY = 1.5;
-	double nominalMaxSpeedY = .8;
+	double maxSpeedY = 1.6;
+	double nominalMaxSpeedY = .7;
 	double instantSpeedX = .4;
 	double holdSpeedX = .06;
-	double instantSpeedY = 0.6;
-	double holdSpeedY = .04;
+	double instantSpeedY = 0.5;
+	double holdSpeedY = .03;
 
 	Entity(Enemy type, int xo, int yo) {
 		x = xo * partialSize;
@@ -357,10 +356,10 @@ struct Entity {
 			timeInAir--;
 		}
 		if (inAir && yv < nominalMaxSpeedY) {
-			yv += personalGravity;
+			yv += personalGravity * dt.asMilliseconds();
 		}
 		if (timeInAir > 5 && up && abs(yv) < nominalMaxSpeedY) {
-			yv -= .05 + holdSpeedY;
+			yv -= .05 + holdSpeedY * dt.asMilliseconds();
 		}
 
 		if (right || left) {
@@ -507,11 +506,11 @@ struct Entity {
 				Vector2f(sprite.getGlobalBounds().width, sprite.getGlobalBounds().height), true, 1, attr));
 		}
 
-		if (includes(attributes, "playable") && invulnerable < 1) {
+		if (includes(attributes, "playable")) {
 			set<string> attr;
 			attr.insert("jump");
 			hitboxes.push_back(Hitbox(this, Vector2f((float)(sprite.getGlobalBounds().left), (float)(sprite.getGlobalBounds().top + sprite.getGlobalBounds().height)),
-				Vector2f((float)(sprite.getGlobalBounds().width), (float)(maxSpeedY * 3)), true, (quake ? 2 : 1), attr));
+				Vector2f((float)(sprite.getGlobalBounds().width), (float)(maxSpeedY * 4)), true, (quake ? 2 : 1), attr));
 		}
 
 		if (includes(attributes, "playable")) {
@@ -529,7 +528,9 @@ struct Entity {
 			set<string> attr;
 			attr.insert("headhit");
 			hitboxes.push_back(Hitbox(this, Vector2f((float)(sprite.getGlobalBounds().left), (float)(sprite.getGlobalBounds().top - 5)),
-				Vector2f(sprite.getGlobalBounds().width, 5), false, 1, attr));
+				Vector2f(sprite.getGlobalBounds().width, 5), false, 2, attr));
+			hitboxes.push_back(Hitbox(this, Vector2f((float)(sprite.getGlobalBounds().left), (float)(sprite.getGlobalBounds().top - 5)),
+				Vector2f(sprite.getGlobalBounds().width, 5), true, 2, attr));
 		}
 
 		if (includes(attributes, "jumper")) {
@@ -559,12 +560,12 @@ struct Entity {
 
 	void jump() {
 		if (!inAir) {
-			yv -= instantSpeedY;
+			yv -= instantSpeedY * dt.asMilliseconds();
 			timeInAir = 25;
 			animationState = 0;
 		}
 		if (inFluid) {
-			yv -= instantSpeedY * 2;
+			yv -= instantSpeedY * 2 * dt.asMilliseconds();
 		}
 	}
 
@@ -572,12 +573,12 @@ struct Entity {
 		if (includes(attributes, "dont_move") || quake) {
 			return;
 		}
-		double val = instantSpeedX;
+		double val = instantSpeedX * dt.asMilliseconds();
 		if (xv >= instantSpeedX - .1) {
-			val = xv + holdSpeedX;
+			val = xv + holdSpeedX * dt.asMilliseconds();
 		}
 		else if (xv <= -instantSpeedX + .1) {
-			val = -xv + holdSpeedX;
+			val = -xv + holdSpeedX * dt.asMilliseconds();
 		}
 		if (right && !left) {
 			xv = abs(val);
@@ -613,11 +614,11 @@ struct Entity {
 			return false;
 		}
 		if (includes(hurter->attributes, "push_left") && (invulnerable > 0 || includes(attributes, "can_be_pushed"))) {
-			xv = -.6;
+			xv = -holdSpeedX * dt.asMilliseconds();
 			return false;
 		}
 		if (includes(hurter->attributes, "push_right") && (invulnerable > 0 || includes(attributes, "can_be_pushed"))) {
-			xv = .6;
+			xv = holdSpeedX * dt.asMilliseconds();
 			return false;
 		}
 		if (invulnerable > 0 || hp <= 0 ||
@@ -742,12 +743,14 @@ int main() {
 	// PLACEMENTS //
 	fluids.push_back(Fluid(188, -4, 200, 18, water));
 
-	Entity monster = Entity(play, 240, 30);
+	Entity monster = Entity(play, 3, 30);
 	surfaces.push_back(Surface(-4, 0, 20, 18, solid));
 	surfaces.push_back(Surface(20, 0, 56, 18, solid));
 	surfaces.push_back(Surface(32, 4, 8, 4, solid));
 	surfaces.push_back(Surface(56, 8, 8, 6, solid));
 	surfaces.push_back(Surface(70, 12, 16, 1, solid));
+	surfaces.push_back(Surface(76, -2, 6, 1, semitrans));
+	surfaces.push_back(Surface(86, -10, 46, 4, solid));
 
 	surfaces.push_back(Surface(92, 13, 2, 8, solid));
 	surfaces.push_back(Surface(94, 8, 12, 3, solid));
@@ -759,13 +762,13 @@ int main() {
 	surfaces.push_back(Surface(146, 6, 24, 2, semitrans));
 	surfaces.push_back(Surface(168, 55, 2, 51, solid));
 	surfaces.push_back(Surface(170, 6, 14, 2, semitrans));
-	surfaces.push_back(Surface(170, 17, 14, 2, semitrans));
-	surfaces.push_back(Surface(170, 28, 14, 2, semitrans));
+	surfaces.push_back(Surface(170, 16, 14, 2, semitrans));
+	surfaces.push_back(Surface(170, 26, 14, 2, semitrans));
 	surfaces.push_back(Surface(188, 28, 2, 48, solid));
 
 	surfaces.push_back(Surface(196, 28, 8, 2, solid));
 	surfaces.push_back(Surface(204, 12, 8, 2, solid));
-	surfaces.push_back(Surface(212, 1, 8, 2, solid));
+	surfaces.push_back(Surface(212, -1, 8, 2, solid));
 
 	enemies.push_back(Entity(red_crate, 12, 12));
 	enemies.push_back(Entity(crate, 32, 12));
@@ -774,14 +777,14 @@ int main() {
 	enemies.push_back(Entity(mook_spike, 96, 12));
 	enemies.push_back(Entity(mook_spawner, 115, -12));
 	enemies.push_back(Entity(mook_spawner, 125, -12));
-	enemies.push_back(Entity(crate, 160, 4));
-	enemies.push_back(Entity(mook_spike_turn, 155, 32));
+	enemies.push_back(Entity(crate, 160, 6));
+	enemies.push_back(Entity(mook_spike_turn, 155, 34));
 	enemies.push_back(Entity(mook_spike_turn, 155, 14));
 	enemies.push_back(Entity(mook_spike_turn, 180, 10));
 	enemies.push_back(Entity(red_crate, 180, 20));
 	enemies.push_back(Entity(crate, 202, 32));
-	enemies.push_back(Entity(mook_turn, 209, 13));
-	enemies.push_back(Entity(mook_spike_turn, 225, 9));
+	enemies.push_back(Entity(mook_spike_turn, 209, 15));
+	enemies.push_back(Entity(mook_spike_turn, 225, 11));
 
 	RenderWindow renderWindow;
 	renderWindow.create(VideoMode(rwindowx, rwindowy), "Platformer"/*, Style::Fullscreen*/);
