@@ -702,6 +702,7 @@ Enemy mook_spike_turn = Enemy("assets/spiketop-turn.png",{1, 1}, { 1, 1, 1 }, { 
 Enemy mook_jumper = Enemy("assets/jumper.png",           {1, 1}, { 1, 1, 1 }, { "jumper", "jumpable", "animate-jump" });
 Enemy mook_floater = Enemy("assets/floater.png",         {1, 2}, { 3, 1, 1 }, { "floatup", "no_hurt", "jumpable", "animate-2", "dont_move" });
 Enemy mook_spawner = Enemy("assets/spawner.png",         {2, 3}, { 3, 1, 1 }, { "no_movement", "no_health", "no_hurt", "no_gravity", "no_damage", "summon_floater" });
+Enemy cloud = Enemy("assets/cloud.png",                  {4, 3}, { 3, 1, 1 }, { "no_movement", "no_health", "no_hurt", "no_gravity", "no_damage"});
 Enemy crate = Enemy("assets/crate.png",                  {2, 2}, { 4, 1, 1 }, { "dont_move", "no_health", "no_hurt", "can_be_pushed", "surface" });
 Enemy red_crate = Enemy("assets/red-crate.png",          {1, 1}, { 1, 1, 1 }, { "dont_move", "no_health", "no_hurt", "can_be_pushed", "surface", "drop_red_potion" });
 Enemy red_potion = Enemy("assets/red-potion.png",        {1, 1}, { 1, 1, 1 }, { "dont_move", "no_health", "no_hurt", "collectable", "potion", "heal" });
@@ -727,7 +728,7 @@ int main() {
 	text.setCharacterSize(24); 
 	text.setFillColor(Color::White);
 	text.setStyle(Text::Bold);
-	text.setPosition(Vector2f(500.f, 200.f));
+	text.setPosition(Vector2f(-500.f, -200.f));
 
 	Text gameover_text;
 	gameover_text.setFont(arial);
@@ -769,6 +770,12 @@ int main() {
 	surfaces.push_back(Surface(196, 28, 8, 2, solid));
 	surfaces.push_back(Surface(204, 12, 8, 2, solid));
 	surfaces.push_back(Surface(212, -1, 8, 2, solid));
+
+	enemies.push_back(Entity(cloud, 20, 30));
+	enemies.push_back(Entity(cloud, 45, 20));
+	enemies.push_back(Entity(cloud, 70, 30));
+	enemies.push_back(Entity(cloud, 95, 20));
+	enemies.push_back(Entity(cloud, 120, 30));
 
 	enemies.push_back(Entity(red_crate, 12, 12));
 	enemies.push_back(Entity(crate, 32, 12));

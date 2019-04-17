@@ -1,5 +1,5 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(377,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
   Source.cpp
-c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(804): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(897): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(811): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\brock\pictures\furry-octo-train\source\repos\project1\project1\source.cpp(904): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
   Project1.vcxproj -> C:\Users\Brock\Pictures\furry-octo-train\source\repos\Project1\Project1\Project1.exe
