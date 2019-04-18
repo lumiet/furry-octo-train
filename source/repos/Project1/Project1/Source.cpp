@@ -14,10 +14,12 @@ using namespace sf;
 Font arial;
 View view;
 
+Time dt;
+
 int frame = 0;
 int sinceDied = 0;
 
-double gravity = .21;
+double gravity = .015;
 float blockSize = 75.f;
 float partialSize = blockSize / 3;
 
@@ -28,7 +30,6 @@ const double pi = 3.141592;
 
 enum species { LIZARD, BIRD, MAMMAL, AMPHIBIAN };
 enum stats { HP, RUNSPD, JUMPH };
-
 
 struct Entity;
 struct Surface;
@@ -222,12 +223,13 @@ struct Entity {
 	vector<int> stats;
 	set<string> attributes;
 	double personalGravity = gravity;
-	double maxSpeedX = 6;
-	double maxSpeedY = 12;
-	double instantSpeedX = 2.1;
-	double holdSpeedX = .05;
-	double instantSpeedY = 7;
-	double holdSpeedY = .1;
+	double maxSpeedX = .6;
+	double maxSpeedY = 1.6;
+	double nominalMaxSpeedY = .7;
+	double instantSpeedX = .4;
+	double holdSpeedX = .06;
+	double instantSpeedY = 0.5;
+	double holdSpeedY = .03;
 
 	Entity(Enemy type, int xo, int yo) {
 		x = xo * partialSize;
@@ -273,6 +275,14 @@ struct Entity {
 			invulnerable = 5;
 		}
 
+		if (!includes(attributes, "playable") && !includes(attributes, "can_be_pushed")) {
+			instantSpeedX *= .65;
+			maxSpeedX *= .65;
+			holdSpeedX = 0;
+
+			instantSpeedY *= .5;
+			maxSpeedY *= .5;
+		}
 		
 		width = type.scale.x;
 		height = type.scale.y;
@@ -322,7 +332,7 @@ struct Entity {
 		animationFrame += (includes(attributes, "animate-jump") && inAir) ? 4 : 0;
 		if ((includes(attributes, "animate-6") || (animationState < 5 && includes(attributes, "animate-jump"))) && animationFrame % 10 == 0) {
 			animationState = (animationState + 1) % 6;
-			sprite.setTextureRect(IntRect(128 * animationState, 0, 128, 128));
+			sprite.setTextureRect(IntRect(128 * animationState, 0, 128, 75));
 		}
 
 		if (includes(attributes, "animate-2")) {
@@ -342,16 +352,14 @@ struct Entity {
 			lastAttack--;
 		}
 
-		
-
 		if (timeInAir > 0) {
 			timeInAir--;
 		}
-		if (inAir) {
-			yv += personalGravity;
+		if (inAir && yv < nominalMaxSpeedY) {
+			yv += personalGravity * dt.asMilliseconds();
 		}
-		if (timeInAir > 5 && up) {
-			yv -= .05 + holdSpeedY;
+		if (timeInAir > 5 && up && abs(yv) < nominalMaxSpeedY) {
+			yv -= .05 + holdSpeedY * dt.asMilliseconds();
 		}
 
 		if (right || left) {
@@ -406,7 +414,7 @@ struct Entity {
 					collideLeft = true;
 				}
 			}
-
+			
 			if (collideLeft && collideRight) {
 				hurtPreset(1);
 			}
@@ -423,13 +431,13 @@ struct Entity {
 			}
 
 			if (xv > 0) {
-				xv -= holdSpeedX / 3;
+				xv -= holdSpeedX * .75;
 				if (collideRight) {
 					xv = 0;
 				}
 			}
 			if (xv < 0) {
-				xv += holdSpeedX / 3;
+				xv += holdSpeedX * .75;
 				if (collideLeft) {
 					xv = 0;
 				}
@@ -472,11 +480,11 @@ struct Entity {
 		}
 
 		if (includes(attributes, "floatup")) {
-			yv = -3;
+			yv = -.4;
 		}
 
-		x += xv;
-		y += inFluid ? (yv / 4) : yv;
+		x += dt.asMilliseconds() * xv;
+		y += dt.asMilliseconds() * (inFluid ? (yv / 4) : yv);
 		sprite.setPosition((float)(x), (float)(y));
 
 		if (forwards) {
@@ -498,11 +506,11 @@ struct Entity {
 				Vector2f(sprite.getGlobalBounds().width, sprite.getGlobalBounds().height), true, 1, attr));
 		}
 
-		if (includes(attributes, "playable") && invulnerable < 1) {
+		if (includes(attributes, "playable")) {
 			set<string> attr;
 			attr.insert("jump");
 			hitboxes.push_back(Hitbox(this, Vector2f((float)(sprite.getGlobalBounds().left), (float)(sprite.getGlobalBounds().top + sprite.getGlobalBounds().height)),
-				Vector2f((float)(sprite.getGlobalBounds().width), (float)(maxSpeedY)), true, (quake ? 2 : 1), attr));
+				Vector2f((float)(sprite.getGlobalBounds().width), (float)(maxSpeedY * 4)), true, (quake ? 2 : 1), attr));
 		}
 
 		if (includes(attributes, "playable")) {
@@ -520,7 +528,9 @@ struct Entity {
 			set<string> attr;
 			attr.insert("headhit");
 			hitboxes.push_back(Hitbox(this, Vector2f((float)(sprite.getGlobalBounds().left), (float)(sprite.getGlobalBounds().top - 5)),
-				Vector2f(sprite.getGlobalBounds().width, 5), false, 1, attr));
+				Vector2f(sprite.getGlobalBounds().width, 5), false, 2, attr));
+			hitboxes.push_back(Hitbox(this, Vector2f((float)(sprite.getGlobalBounds().left), (float)(sprite.getGlobalBounds().top - 5)),
+				Vector2f(sprite.getGlobalBounds().width, 5), true, 2, attr));
 		}
 
 		if (includes(attributes, "jumper")) {
@@ -550,12 +560,12 @@ struct Entity {
 
 	void jump() {
 		if (!inAir) {
-			yv -= instantSpeedY;
+			yv -= instantSpeedY * dt.asMilliseconds();
 			timeInAir = 25;
 			animationState = 0;
 		}
 		if (inFluid) {
-			yv -= instantSpeedY * 2;
+			yv -= instantSpeedY * 2 * dt.asMilliseconds();
 		}
 	}
 
@@ -563,12 +573,12 @@ struct Entity {
 		if (includes(attributes, "dont_move") || quake) {
 			return;
 		}
-		double val = instantSpeedX;
+		double val = instantSpeedX * dt.asMilliseconds();
 		if (xv >= instantSpeedX - .1) {
-			val = xv + holdSpeedX;
+			val = xv + holdSpeedX * dt.asMilliseconds();
 		}
 		else if (xv <= -instantSpeedX + .1) {
-			val = -xv + holdSpeedX;
+			val = -xv + holdSpeedX * dt.asMilliseconds();
 		}
 		if (right && !left) {
 			xv = abs(val);
@@ -604,11 +614,11 @@ struct Entity {
 			return false;
 		}
 		if (includes(hurter->attributes, "push_left") && (invulnerable > 0 || includes(attributes, "can_be_pushed"))) {
-			xv = -1;
+			xv = -holdSpeedX * dt.asMilliseconds();
 			return false;
 		}
 		if (includes(hurter->attributes, "push_right") && (invulnerable > 0 || includes(attributes, "can_be_pushed"))) {
-			xv = 1;
+			xv = holdSpeedX * dt.asMilliseconds();
 			return false;
 		}
 		if (invulnerable > 0 || hp <= 0 ||
@@ -652,25 +662,25 @@ bool Fluid::intersects(Entity* character) {
 }
 
 bool Surface::intersectsTop(Entity* character) {
-	RectangleShape fake(Vector2f((float)(character->sprite.getGlobalBounds().width), (float)(character->maxSpeedY)));
-	fake.setPosition(Vector2f((float)(character->sprite.getGlobalBounds().left), (float)(character->sprite.getGlobalBounds().top - character->maxSpeedY)));
+	RectangleShape fake(Vector2f((float)(character->sprite.getGlobalBounds().width), (float)(character->maxSpeedY * dt.asMilliseconds())));
+	fake.setPosition(Vector2f((float)(character->sprite.getGlobalBounds().left), (float)(character->sprite.getGlobalBounds().top - character->maxSpeedY * dt.asMilliseconds())));
 	return rect.getGlobalBounds().intersects(fake.getGlobalBounds()) && canIntersectBottom;
 }
 
 bool Surface::intersectsBottom(Entity* character) {
-	RectangleShape fake(Vector2f((float)(character->sprite.getGlobalBounds().width), (float)(character->maxSpeedY)));
+	RectangleShape fake(Vector2f((float)(character->sprite.getGlobalBounds().width), (float)(character->maxSpeedY * dt.asMilliseconds())));
 	fake.setPosition(Vector2f((float)(character->sprite.getGlobalBounds().left), (float)(character->sprite.getGlobalBounds().top + character->sprite.getGlobalBounds().height)));
 	return rect.getGlobalBounds().intersects(fake.getGlobalBounds()) && canIntersectTop;
 }
 
 bool Surface::intersectsLeft(Entity* character) {
-	RectangleShape fake(Vector2f((float)(character->maxSpeedX), (float)(character->sprite.getGlobalBounds().height)));
-	fake.setPosition(Vector2f((float)(character->sprite.getGlobalBounds().left - character->maxSpeedX), (float)(character->sprite.getGlobalBounds().top)));
+	RectangleShape fake(Vector2f((float)(character->maxSpeedX * dt.asMilliseconds()), (float)(character->sprite.getGlobalBounds().height)));
+	fake.setPosition(Vector2f((float)(character->sprite.getGlobalBounds().left - character->maxSpeedX * dt.asMilliseconds()), (float)(character->sprite.getGlobalBounds().top)));
 	return rect.getGlobalBounds().intersects(fake.getGlobalBounds()) && canIntersectLeft;
 }
 
 bool Surface::intersectsRight(Entity* character) {
-	RectangleShape fake(Vector2f((float)(character->maxSpeedX), (float)(character->sprite.getGlobalBounds().height)));
+	RectangleShape fake(Vector2f((float)(character->maxSpeedX * dt.asMilliseconds()), (float)(character->sprite.getGlobalBounds().height)));
 	fake.setPosition(Vector2f((float)(character->sprite.getGlobalBounds().left + character->sprite.getGlobalBounds().width), (float)(character->sprite.getGlobalBounds().top)));
 	return rect.getGlobalBounds().intersects(fake.getGlobalBounds()) && canIntersectRight;
 }
@@ -690,8 +700,9 @@ Enemy mook_turn = Enemy("assets/jump-turn.png",          {1, 1}, { 2, 1, 1 }, { 
 Enemy mook_spike = Enemy("assets/spiketop-noturn.png",   {1, 1}, { 1, 1, 1 }, { "spike", "animate-6" });
 Enemy mook_spike_turn = Enemy("assets/spiketop-turn.png",{1, 1}, { 1, 1, 1 }, { "spike", "animate-6", "turn_at_corner" });
 Enemy mook_jumper = Enemy("assets/jumper.png",           {1, 1}, { 1, 1, 1 }, { "jumper", "jumpable", "animate-jump" });
-Enemy mook_floater = Enemy("assets/floater.png",         {1, 2}, { 3, 1, 1 }, { "floatup", "jumpable", "animate-2", "dont_move" });
-Enemy mook_spawner = Enemy("assets/spawner.png",         {2, 3}, { 3, 1, 1 }, { "no_movement", "no_health", "no_hurt", "no_gravity",  "surface", "no_damage", "summon_floater" });
+Enemy mook_floater = Enemy("assets/floater.png",         {1, 2}, { 3, 1, 1 }, { "floatup", "no_hurt", "jumpable", "animate-2", "dont_move" });
+Enemy mook_spawner = Enemy("assets/spawner.png",         {2, 3}, { 3, 1, 1 }, { "no_movement", "no_health", "no_hurt", "no_gravity", "no_damage", "summon_floater" });
+Enemy cloud = Enemy("assets/cloud.png",                  {4, 3}, { 3, 1, 1 }, { "no_movement", "no_health", "no_hurt", "no_gravity", "no_damage"});
 Enemy crate = Enemy("assets/crate.png",                  {2, 2}, { 4, 1, 1 }, { "dont_move", "no_health", "no_hurt", "can_be_pushed", "surface" });
 Enemy red_crate = Enemy("assets/red-crate.png",          {1, 1}, { 1, 1, 1 }, { "dont_move", "no_health", "no_hurt", "can_be_pushed", "surface", "drop_red_potion" });
 Enemy red_potion = Enemy("assets/red-potion.png",        {1, 1}, { 1, 1, 1 }, { "dont_move", "no_health", "no_hurt", "collectable", "potion", "heal" });
@@ -717,7 +728,7 @@ int main() {
 	text.setCharacterSize(24); 
 	text.setFillColor(Color::White);
 	text.setStyle(Text::Bold);
-	text.setPosition(Vector2f(500.f, 200.f));
+	text.setPosition(Vector2f(-500.f, -200.f));
 
 	Text gameover_text;
 	gameover_text.setFont(arial);
@@ -733,12 +744,14 @@ int main() {
 	// PLACEMENTS //
 	fluids.push_back(Fluid(188, -4, 200, 18, water));
 
-	Entity monster = Entity(play, 2, 20);
+	Entity monster = Entity(play, 3, 30);
 	surfaces.push_back(Surface(-4, 0, 20, 18, solid));
 	surfaces.push_back(Surface(20, 0, 56, 18, solid));
 	surfaces.push_back(Surface(32, 4, 8, 4, solid));
 	surfaces.push_back(Surface(56, 8, 8, 6, solid));
 	surfaces.push_back(Surface(70, 12, 16, 1, solid));
+	surfaces.push_back(Surface(76, -2, 6, 1, semitrans));
+	surfaces.push_back(Surface(86, -10, 46, 4, solid));
 
 	surfaces.push_back(Surface(92, 13, 2, 8, solid));
 	surfaces.push_back(Surface(94, 8, 12, 3, solid));
@@ -749,25 +762,44 @@ int main() {
 	surfaces.push_back(Surface(138, 19, 24, 2, semitrans));
 	surfaces.push_back(Surface(146, 6, 24, 2, semitrans));
 	surfaces.push_back(Surface(168, 55, 2, 51, solid));
-	surfaces.push_back(Surface(170, 19, 14, 2, semitrans));
 	surfaces.push_back(Surface(170, 6, 14, 2, semitrans));
+	surfaces.push_back(Surface(170, 16, 14, 2, semitrans));
+	surfaces.push_back(Surface(170, 26, 14, 2, semitrans));
 	surfaces.push_back(Surface(188, 28, 2, 48, solid));
 
+	surfaces.push_back(Surface(196, 28, 8, 2, solid));
+	surfaces.push_back(Surface(204, 12, 8, 2, solid));
+	surfaces.push_back(Surface(212, -1, 8, 2, solid));
+
+	enemies.push_back(Entity(cloud, 20, 30));
+	enemies.push_back(Entity(cloud, 45, 20));
+	enemies.push_back(Entity(cloud, 70, 30));
+	enemies.push_back(Entity(cloud, 95, 20));
+	enemies.push_back(Entity(cloud, 120, 30));
+
+	enemies.push_back(Entity(red_crate, 12, 12));
+	enemies.push_back(Entity(crate, 32, 12));
 	enemies.push_back(Entity(mook, 56, 12));
 	enemies.push_back(Entity(mook_turn, 72, 16));
 	enemies.push_back(Entity(mook_spike, 96, 12));
 	enemies.push_back(Entity(mook_spawner, 115, -12));
 	enemies.push_back(Entity(mook_spawner, 125, -12));
-	enemies.push_back(Entity(mook_spike_turn, 155, 32));
+	enemies.push_back(Entity(crate, 160, 6));
+	enemies.push_back(Entity(mook_spike_turn, 155, 34));
 	enemies.push_back(Entity(mook_spike_turn, 155, 14));
-	enemies.push_back(Entity(red_crate, 12, 12));
-	enemies.push_back(Entity(crate, 32, 12));
+	enemies.push_back(Entity(mook_spike_turn, 180, 10));
+	enemies.push_back(Entity(red_crate, 180, 20));
+	enemies.push_back(Entity(crate, 202, 32));
+	enemies.push_back(Entity(mook_spike_turn, 209, 15));
+	enemies.push_back(Entity(mook_spike_turn, 225, 11));
 
 	RenderWindow renderWindow;
 	renderWindow.create(VideoMode(rwindowx, rwindowy), "Platformer"/*, Style::Fullscreen*/);
 
+	Clock deltaClock;
 	while (renderWindow.isOpen()) {
 		frame++;
+		dt = deltaClock.restart();
 
 		renderWindow.clear(Color(150, 170, 200, 255));
 		view.setCenter(max(view.getSize().x / 2 - 50, monster.sprite.getPosition().x), 500.f);
